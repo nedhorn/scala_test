@@ -1,0 +1,288 @@
+#include <set>
+#include <vector>
+#include <list>
+#include <iostream>
+#include <algorithm>
+#include <assert.h>
+#include <yaml-cpp/yaml.h>
+
+//Author: Edward Horn
+//Date Created: 5/20/2019
+
+// A Person.  Simple data holder
+struct Person {
+	std::string name;  //The name of the person.  
+				//TODO: optimize by creating master table indexed by ID and dropping from struct.
+	int ID;  	//unique ID.  To be created on the fly as data is read in.
+				//this will allow multiple people with same name.
+	double time;  	//time taken to cross
+};
+
+bool operator < (const Person& lhs, const Person& rhs) { return lhs.time < rhs.time;}
+bool operator == (const Person& lhs, const Person& rhs) {return lhs.ID == rhs.ID; }
+
+// An area people can be moved to/from.
+// All data is local, so no need for explicit assignment/destructors/etc
+class Area {
+	std::set<Person, std::less<Person> > _people;
+  public:
+	Area(const std::set<Person> people) : _people(people) {}
+	Area(const std::vector<Person> people) {
+		for(auto p: people) { _people.insert(p); }
+		}
+	Area() {}
+	
+	void add_person(const Person p) {
+		_people.insert(p);
+	}
+	
+	bool empty() const { return (0 == _people.size()); } 
+	size_t size() const { return _people.size(); }  //used for asserts.  2 people allowed on bridge
+	
+	const Person fastest() const { 
+		assert(!empty());  //must have people to move
+		return (*_people.begin()); 
+		}
+	const Person slowest() const { 
+		assert(!empty());
+		return (*_people.rbegin()); 
+		}
+	
+	const std::set<Person> people() { return _people; }
+	
+	void transfer(const Person p, Area& to) {
+		_people.erase(p);
+		to._people.insert(p);
+	}
+	
+	void transfer_all(Area& to) {
+		while(!empty()) {
+			transfer(slowest(), to);
+		}
+	}
+		
+	friend bool operator == (const Area& lhs, const Area &rhs);
+	
+	void dump() {
+		for(auto p: _people) { std::cout << p.name << " "; } 
+		std::cout << std::endl;
+		}
+};
+
+bool operator == (const Area& lhs, const Area &rhs) { return lhs._people == rhs._people; }
+
+// The current state of a crossing.  Who is where.  We keep info for bookeeping.
+// All data is local.  Will use automatic assgnment/destructor/etc
+// Another reason to use local, non-reference data is to allow us to create an exhaustive recursive
+//   version that we are sure will create an optimized result for use in testing our fast version.
+class CrossingState {
+	Area _lb;  	//left bank, where we start
+	Area _bridge;	//The bridge.  
+	Area _rb;	//right bank, where we end
+	
+  public:
+	CrossingState (const std::vector<Person> people) : _lb(people) {}
+	CrossingState () {} //empty initializer
+	CrossingState (const std::string filename);  //load from a yaml file
+	
+	Area& left() { return _lb; }
+	Area& right() { return _rb; }
+	Area& bridge() { return _bridge; }
+	
+	void l_to_b(const Person& p) { 
+		assert(_bridge.size() < 2);  //max of two people allowed on bridge
+		_lb.transfer(p, _bridge); 
+		} //move person from left bank to bridge
+		
+	void b_to_r(const Person& p) { //move person from bridge to right bank
+		_bridge.transfer(p, _rb); 
+		}
+		
+	void r_to_b(const Person& p) { //right bank to bridge
+		assert(_bridge.size() < 2);
+		_rb.transfer(p, _bridge); 
+		}
+		
+	void b_to_l(const Person& p) { //bridge to left bank
+		_bridge.transfer(p, _lb); 
+		}
+		
+	void all_b_to_r() { // move everyone from bridge to right bank
+		_bridge.transfer_all(_rb); 
+		} 
+	void all_b_to_l() { //move everyone on bridge to left
+		_bridge.transfer_all(_lb); 
+		} 
+	
+	double speed_across_bridge() const { //How fast does it take to cross the bridge?
+		if(_bridge.empty()) return 0;
+		else return _bridge.slowest().time; //slowest person
+	}
+	
+	void dump() {
+		std::cout << "LEFT: ";
+		left().dump();
+		std::cout << "BRIDGE: ";
+		bridge().dump();
+		std::cout << "RIGHT: ";
+		right().dump();
+		std::cout << std::endl;
+	}
+		 
+	friend bool operator == (const CrossingState& lhs, const CrossingState& rhs);
+};
+
+bool operator == (const CrossingState& lhs, const CrossingState& rhs) {
+	return (lhs._lb == rhs._lb && lhs._bridge == rhs._bridge && lhs._rb == rhs._rb);
+}
+
+CrossingState::CrossingState(const std::string filename) {
+	int ID = 0;
+	YAML::Node base = YAML::LoadFile(filename);
+	if (base.IsNull()) { std::cout << "BAD FILE" << std::endl; }
+	YAML::Node people = base["people"];
+	//std::cout << people << std::endl;
+	for(auto i: people) {
+		Person p = { i["name"].as<std::string>(), ID, i["time"].as<double>() };
+		left().add_person(p);
+		++ID;
+	}
+}
+
+// The history of our crossings.  We will build this in the course of our algorithhm
+struct CrossingHistory {
+  private:
+	std::list<CrossingState> _history;
+	
+  public:
+  
+	// add the current state to the history
+	void record(const CrossingState& state) { _history.push_back(state); }
+	
+	// the total crossing time for all states in history
+	double total_time() {
+		double t = 0;
+		for (auto c: _history) {
+			t += c.speed_across_bridge();
+		}
+		return t;
+	}
+	
+	// is a state already in the list?
+	// the fast version of the algorithm does not need this
+	// it is for exhaustive versions that need to avoid cycles
+	bool visited(const CrossingState& state) const {
+		return (0 != std::count(_history.begin(), _history.end(), state));
+	}
+	
+	void dump() { 
+		for(auto h: _history)
+			h.dump();
+		std::cout << "TOTAL TIME " << total_time() << std::endl; 
+		}
+};
+	
+//Our fast version of the algorithm.  The recursive exhaustive version would be quite different.
+class FastCrossing {
+	CrossingHistory _hist;
+	CrossingState _state;
+	
+	void snap() { _hist.record(_state); } //add a snapshot of the current state to history
+		
+	// this may seem redundant, but being explicit minimizes chances of screwing up left/right etc
+	Area& left() { return _state.left(); }
+	Area& bridge() { return _state.bridge(); }
+	Area& right() { return _state.right(); }
+	void fastest_l_to_b() { _state.l_to_b(left().fastest());} //move fastest from left bank to bridge
+	void fastest_r_to_b() { _state.r_to_b(right().fastest()); } //fastest right to bridge
+	void slowest_l_to_b() { _state.l_to_b(_state.left().slowest()); }
+	void all_b_to_l() { _state.all_b_to_l(); }
+	void all_b_to_r() { _state.all_b_to_r(); }
+	
+	bool left_empty() { return _state.left().empty(); }  //the left bank is empty.  done
+	
+	void retrieve_fastest() { //send the fastest from right to left
+		fastest_r_to_b();
+		snap();
+		all_b_to_l();
+		snap();
+	}
+	
+	void send_slowest() { //send the two slowest from left to right
+		slowest_l_to_b();
+		slowest_l_to_b();
+		snap();
+		all_b_to_r();
+		snap();
+	}
+
+	void clear() {
+		_hist = CrossingHistory();  //clear history
+	}
+	
+  public:
+	
+	CrossingHistory cross(const CrossingState& initial_state) {
+		clear();
+		
+		_state = initial_state;
+		snap();
+		
+		//special case, less than two people:
+		if(0 == left().size()) return _hist;  //nothing
+		if(1 == left().size()) {
+			fastest_l_to_b();
+			snap();
+			all_b_to_r();
+			snap();
+			return _hist;
+		}
+		
+
+		while(!left_empty()) {
+			//send the two fastest as couriers for future crossings
+			fastest_l_to_b();
+			fastest_l_to_b();
+			snap();
+			all_b_to_r();  //the fast couriers are not both on the other side
+			snap();
+			//at this point we are set up to bring biggest two over
+			if (left_empty()) break;  //no one left. we are done
+			retrieve_fastest();  //send the courier back with torch as future guide
+								//we have left the second fastest on the other side
+			send_slowest(); //send over the two slowest guys
+			if (!left_empty()) {
+				retrieve_fastest(); //bring back the other fast guy with the torch
+			}
+		}
+		return _hist;
+	}	
+};
+	
+// NOTE:  I am fairly confident this will create an optimized result.
+// If I really wanted to make sure, I would write a brute-force exhaustive recursive version
+// that would create all possible paths.  We would use the shortest result to test against a variety
+// of inputs.  I designed the basic classes with this in mind. For example, all member data is by
+// value, making copying less complicated for use in a recursion.	
+
+int main(int argc, char **argv) {
+	
+	FastCrossing crossing;	
+
+	CrossingState state (  //default test
+		{
+		{"A", 1, 1},
+		{"B", 2, 2},
+		{"C", 3, 5},
+		{"D", 4, 10}
+		} );
+		
+	if(argc > 1) {
+		state = CrossingState(argv[1]);
+	}
+	
+	CrossingHistory hist = crossing.cross(state);
+	hist.dump();
+			
+	return 0;
+}
