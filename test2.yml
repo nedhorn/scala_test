@@ -1,0 +1,13 @@
+people:
+        - name: A 
+          time: 1
+        - name: B 
+          time: 4 
+        - name: C 
+          time: 5
+        - name: D
+          time: 10
+        - name: John Smith 
+          time: 10
+        - name: Attila the Hun 
+          time: 17 
