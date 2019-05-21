@@ -47,8 +47,14 @@ struct Person {
 	double time;  	//time taken to cross
 };
 
-bool operator < (const Person& lhs, const Person& rhs) { return lhs.time < rhs.time;}
+
 bool operator == (const Person& lhs, const Person& rhs) {return lhs.ID == rhs.ID; }
+bool operator < (const Person& lhs, const Person& rhs) { 
+	if (lhs.time == rhs.time) {
+		return lhs.ID < rhs.ID;  //one reason the unique ID is handy
+	}
+	return lhs.time < rhs.time;
+}
 
 // An area people can be moved to/from.
 // All data is local, so no need for explicit assignment/destructors/etc
