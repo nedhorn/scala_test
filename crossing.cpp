@@ -252,6 +252,7 @@ class FastCrossing {
 	
   public:
 	
+	//Cross the bridge!
 	CrossingHistory cross(const CrossingState& initial_state) {
 		clear();
 		
