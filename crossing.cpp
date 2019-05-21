@@ -47,13 +47,13 @@ struct Person {
 	double time;  	//time taken to cross
 };
 
-
+//comparators
 bool operator == (const Person& lhs, const Person& rhs) {return lhs.ID == rhs.ID; }
 bool operator < (const Person& lhs, const Person& rhs) { 
 	if (lhs.time == rhs.time) {
 		return lhs.ID < rhs.ID;  //one reason the unique ID is handy
 	}
-	return lhs.time < rhs.time;
+	return lhs.time < rhs.time; //slower people are lesser people
 }
 
 // An area people can be moved to/from.
@@ -71,25 +71,28 @@ class Area {
 		_people.insert(p);
 	}
 	
-	bool empty() const { return (0 == _people.size()); } 
+	bool empty() const { return (0 == _people.size()); } //no one here
 	size_t size() const { return _people.size(); }  //used for asserts.  2 people allowed on bridge
 	
-	const Person fastest() const { 
+	
+	const Person fastest() const {  //the fastest in area
 		assert(!empty());  //must have people to move
 		return (*_people.begin()); 
 		}
-	const Person slowest() const { 
+	const Person slowest() const {  
 		assert(!empty());
 		return (*_people.rbegin()); 
 		}
 	
 	const std::set<Person> people() { return _people; }
 	
+	// move person to another Area
 	void transfer(const Person p, Area& to) {
 		_people.erase(p);
 		to._people.insert(p);
 	}
 	
+	// move all people to another Area
 	void transfer_all(Area& to) {
 		while(!empty()) {
 			transfer(slowest(), to);
@@ -98,6 +101,7 @@ class Area {
 		
 	friend bool operator == (const Area& lhs, const Area &rhs);
 	
+	// print out.  yes we could use an << operator but this is nice for debugging.
 	void dump() {
 		for(auto p: _people) { std::cout << p.name << " "; } 
 		std::cout << std::endl;
@@ -178,9 +182,16 @@ bool operator == (const CrossingState& lhs, const CrossingState& rhs) {
 CrossingState::CrossingState(const std::string filename) {
 	int ID = 0;
 	YAML::Node base = YAML::LoadFile(filename);
-	if (base.IsNull()) { std::cout << "BAD FILE" << std::endl; }
+	if (base.IsNull()) { 
+		std::cout << "NO FILE" << filename << std::endl; 
+		return; //probably legal
+		}
+		
 	YAML::Node people = base["people"];
-	if (people.IsNull()) { std::cout << "BAD FILE" << std::endl; }
+	if (people.IsNull()) { 
+		std::cout << "NO PEOPLE IN FILE " << filename << std::endl; 
+		return; // legal?? not sure.  otherwise an assert or throw
+		}
 	for(auto i: people) {
 		Person p = { i["name"].as<std::string>(), ID, i["time"].as<double>() };
 		left().add_person(p);
