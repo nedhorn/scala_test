@@ -12,7 +12,7 @@
 //The task is to get people from one side of a bridge to the other at night with only one torch.
 //People travel at different speeds.  When travelling together they do so at the speed of the slowest.
 //The bridge can hold no more than 2 people at a time.  
-//To cross the bridge at least on of them must be holding the torch.  
+//To cross the bridge at least one of them must be holding the torch.  
 //Our goal is to find an order of crossing that will take minimal time, and print the results.
 
 //For our model we will create a left and right bank of the river and a bridge.
@@ -28,13 +28,13 @@
 //
 //  Constraints:  No more than 2 people on bridge at a time.
 //	
-//  For our purposes there is no reason to model the torch.  
+//  For our purposes there is no reason to model the torch. 
 //  We could get away with not modelling the bridge, simply keep a running count of the elapsed time.
-//    But by including the bridge in our model we have can crate complete snapshots of our state
+//    But by including the bridge in our model we have can create complete snapshots of our state
 //    and a complete record of crossings. A complete history like this is clearer to work with
-//    and much more flexible for future development.
+//    and much more flexible for future development and debugging.
 //
-//  By splitting our or algorithm into its own object we open to door to reuse other strategies in
+//  By splitting out or strategy into its own object we open to door to reuse other strategies in
 //     our tests.
 
 // A Person.  Simple data holder
@@ -210,7 +210,7 @@ struct CrossingHistory {
 		}
 };
 	
-//Our fast version of the algorithm.  The recursive exhaustive version would be quite different.
+//Our fast version of the algorithm.  A recursive exhaustive version would be quite different.
 class FastCrossing {
 	CrossingHistory _hist;
 	CrossingState _state;
