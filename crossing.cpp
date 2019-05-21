@@ -165,16 +165,17 @@ bool operator == (const CrossingState& lhs, const CrossingState& rhs) {
 	return (lhs._lb == rhs._lb && lhs._bridge == rhs._bridge && lhs._rb == rhs._rb);
 }
 
+//load from yaml
 CrossingState::CrossingState(const std::string filename) {
 	int ID = 0;
 	YAML::Node base = YAML::LoadFile(filename);
 	if (base.IsNull()) { std::cout << "BAD FILE" << std::endl; }
 	YAML::Node people = base["people"];
-	//std::cout << people << std::endl;
+	if (people.IsNull()) { std::cout << "BAD FILE" << std::endl; }
 	for(auto i: people) {
 		Person p = { i["name"].as<std::string>(), ID, i["time"].as<double>() };
 		left().add_person(p);
-		++ID;
+		++ID; //our unique ID in case of multiples.  A safety measure.
 	}
 }
 
