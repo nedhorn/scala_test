@@ -8,6 +8,7 @@
 
 //Author: Edward Horn
 //Date Created: 5/20/2019
+//To compile:   g++ -std=c++17 crossing.cpp -lyaml-cpp
 
 //The task is to get people from one side of a bridge to the other at night with only one torch.
 //People travel at different speeds.  When travelling together they do so at the speed of the slowest.
