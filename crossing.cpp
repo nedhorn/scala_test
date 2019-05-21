@@ -9,6 +9,34 @@
 //Author: Edward Horn
 //Date Created: 5/20/2019
 
+//The task is to get people from one side of a bridge to the other at night with only one torch.
+//People travel at different speeds.  When travelling together they do so at the speed of the slowest.
+//The bridge can hold no more than 2 people at a time.  
+//To cross the bridge at least on of them must be holding the torch.  
+//Our goal is to find an order of crossing that will take minimal time, and print the results.
+
+//For our model we will create a left and right bank of the river and a bridge.
+//People will begin on the left bank.
+//The entities in the model will include: 
+//	Person:  description of one of the people.
+//		When we read in a person's description we are given a name and a speed.
+//		But two people can have the same name, so we will create a unique ID for each as we read.
+//  Area: Area people can be moved to.
+//  Crossing: Left Bank, Bridge and Right Bank Areas.
+//  CrossingHistory:  the complete history of how we got across the bridge
+//  FastCrossing: our strategy for quickly crossing the bridge
+//
+//  Constraints:  No more than 2 people on bridge at a time.
+//	
+//  For our purposes there is no reason to model the torch.  
+//  We could get away with not modelling the bridge, simply keep a running count of the elapsed time.
+//    But by including the bridge in our model we have can crate complete snapshots of our state
+//    and a complete record of crossings. A complete history like this is clearer to work with
+//    and much more flexible for future development.
+//
+//  By splitting our or algorithm into its own object we open to door to reuse other strategies in
+//     our tests.
+
 // A Person.  Simple data holder
 struct Person {
 	std::string name;  //The name of the person.  
