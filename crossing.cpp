@@ -268,7 +268,7 @@ class FastCrossing {
 		_state = initial_state;
 		snap();
 		
-		//special case, less than two people:
+		//special cases, one or two people:
 		if(0 == left().size()) return _hist;  //nothing
 		if(1 == left().size()) {
 			fastest_l_to_b();
