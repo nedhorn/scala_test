@@ -124,6 +124,9 @@ class CrossingState {
 	Area& right() { return _rb; }
 	Area& bridge() { return _bridge; }
 	
+	//methods for moving people across the bridge.  
+	//although this seems wordy, it will cut down the possibilites of mistakes later in the code
+	
 	void l_to_b(const Person& p) { 
 		assert(_bridge.size() < 2);  //max of two people allowed on bridge
 		_lb.transfer(p, _bridge); 
